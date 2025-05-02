@@ -62,10 +62,12 @@ export default async function handler(req, res) {
       sha: file?.sha,
       branch,
     });
-
-    return res.status(200).json({ success: true });
+  
+    const redirectUrl = `https://leespeak.me/${path}/${slug}`;
+    return res.redirect(302, redirectUrl);
   } catch (err) {
     console.error("Error writing comment:", err);
     return res.status(500).json({ error: "Failed to save comment" });
   }
+  
 }
