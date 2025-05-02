@@ -1,6 +1,7 @@
 import { Octokit } from "octokit";
 
-const repo = "liamckenna/LEE_SPEAK";
+const owner = "liamckenna";
+const repo = "LEE_SPEAK";
 const branch = "master";
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
@@ -22,14 +23,14 @@ export default async function handler(req, res) {
   let json = [];
 
   try {
-    const res = await octokit.rest.repos.getContent({
-      owner: "liamckenna",
+    const response = await octokit.rest.repos.getContent({
+      owner,
       repo,
       path: filepath,
       ref: branch,
     });
 
-    file = res.data;
+    file = response.data;
     const content = Buffer.from(file.content, "base64").toString();
     json = JSON.parse(content);
   } catch (err) {
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
 
   try {
     await octokit.rest.repos.createOrUpdateFileContents({
-      owner: "liamckenna",
+      owner,
       repo,
       path: filepath,
       message: `Add comment to ${path}/${slug}`,
