@@ -3,5 +3,4 @@
     "dependencies": {
       "octokit": "^3.0.0"
     }
-  }
-  
+}
