@@ -2,7 +2,6 @@ import { Octokit } from "octokit";
 
 const repo = "liamckenna/LEE_SPEAK";
 const branch = "master";
-const filepath = "data/comments.json";
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
@@ -17,41 +16,55 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
+  const filepath = `data/comments/${path}/${slug}.json`;
+
+  let file;
+  let json = [];
+
   try {
-    const { data: file } = await octokit.rest.repos.getContent({
+    const res = await octokit.rest.repos.getContent({
       owner: "liamckenna",
-      repo: "LEE_SPEAK",
+      repo,
       path: filepath,
       ref: branch,
     });
 
+    file = res.data;
     const content = Buffer.from(file.content, "base64").toString();
-    const json = JSON.parse(content);
+    json = JSON.parse(content);
+  } catch (err) {
+    if (err.status === 404) {
+      // File doesn't exist yet — start fresh
+      file = null;
+      json = [];
+    } else {
+      console.error("Error reading existing file:", err);
+      return res.status(500).json({ error: "Failed to read comment file" });
+    }
+  }
 
-    if (!json[path]) json[path] = {};
-    if (!json[path][slug]) json[path][slug] = [];
+  json.push({
+    name,
+    comment,
+    date: new Date().toISOString(),
+  });
 
-    json[path][slug].push({
-      name,
-      comment,
-      date: new Date().toISOString(),
-    });
+  const updatedContent = Buffer.from(JSON.stringify(json, null, 2)).toString("base64");
 
-    const updatedContent = Buffer.from(JSON.stringify(json, null, 2)).toString("base64");
-
+  try {
     await octokit.rest.repos.createOrUpdateFileContents({
       owner: "liamckenna",
-      repo: "LEE_SPEAK",
+      repo,
       path: filepath,
       message: `Add comment to ${path}/${slug}`,
       content: updatedContent,
-      sha: file.sha,
+      sha: file?.sha,
       branch,
     });
 
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error("Error saving comment:", err);
+    console.error("Error writing comment:", err);
     return res.status(500).json({ error: "Failed to save comment" });
   }
 }
